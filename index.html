@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Tuner — Afinador Cromático</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #06070d;
+    --bg-1: #0b0d18;
+    --surface: rgba(255, 255, 255, 0.04);
+    --surface-2: rgba(255, 255, 255, 0.06);
+    --stroke: rgba(255, 255, 255, 0.08);
+    --stroke-strong: rgba(255, 255, 255, 0.14);
+
+    --text: #f4f6fb;
+    --text-dim: #a4adc2;
+    --text-muted: #6b7591;
+
+    --neon: #39ff14;
+    --neon-soft: #6affc8;
+    --cyan: #5cdcff;
+    --magenta: #ff4fd8;
+    --red: #ff5470;
+    --amber: #ffb968;
+
+    --shadow-1: 0 8px 30px rgba(0,0,0,0.45);
+
+    --radius-lg: 24px;
+    --radius-md: 16px;
+
+    --font-display: 'Space Grotesk', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; min-height: 100vh;
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: var(--font-display);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  body {
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(57,255,20,0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(92,220,255,0.10), transparent 55%),
+      radial-gradient(700px 400px at 50% 50%, rgba(255,79,216,0.06), transparent 60%),
+      linear-gradient(180deg, #06070d 0%, #0a0c16 100%);
+    background-attachment: fixed;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    z-index: 1;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 460px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)),
+      var(--bg-1);
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    position: relative;
+    z-index: 2;
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    box-shadow: var(--shadow-1), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  .app::before {
+    content: "";
+    position: absolute; inset: -1px;
+    border-radius: var(--radius-lg);
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(57,255,20,0.35), transparent 30%, transparent 70%, rgba(92,220,255,0.25));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 22px;
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--neon);
+    box-shadow: 0 0 12px var(--neon), 0 0 0 4px rgba(57,255,20,0.12);
+    animation: pulseDot 2.4s ease-in-out infinite;
+  }
+  @keyframes pulseDot {
+    0%, 100% { box-shadow: 0 0 12px var(--neon), 0 0 0 4px rgba(57,255,20,0.12); }
+    50%      { box-shadow: 0 0 18px var(--neon), 0 0 0 8px rgba(57,255,20,0.04); }
+  }
+  .title {
+    font-weight: 600; font-size: 15px; letter-spacing: 0.02em; color: var(--text);
+  }
+  .title span { color: var(--text-dim); font-weight: 400; }
+
+  .badge {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(92,220,255,0.10);
+    color: var(--cyan);
+    border: 1px solid rgba(92,220,255,0.25);
+    text-transform: uppercase;
+    transition: color 200ms, background 200ms, border-color 200ms;
+  }
+
+  .display {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: 28px 20px 20px;
+    margin-bottom: 14px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .display::after {
+    content: "";
+    position: absolute; left: 50%; top: -40%;
+    width: 280px; height: 280px;
+    background: radial-gradient(closest-side, rgba(57,255,20,0.14), transparent 70%);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .note-row {
+    position: relative; z-index: 1;
+    display: flex; align-items: flex-start; justify-content: center; gap: 6px;
+    line-height: 1;
+  }
+
+  .note {
+    font-weight: 700;
+    font-size: 96px;
+    letter-spacing: -0.04em;
+    color: var(--neon);
+    text-shadow: 0 0 30px rgba(57,255,20,0.45);
+    line-height: 0.9;
+    transition: color 200ms ease, text-shadow 200ms ease, transform 200ms;
+  }
+  .note.idle  { color: var(--text-muted); text-shadow: none; }
+  .note.flat  { color: var(--cyan);    text-shadow: 0 0 30px rgba(92,220,255,0.45); }
+  .note.sharp { color: var(--magenta); text-shadow: 0 0 30px rgba(255,79,216,0.45); }
+  .note.bad   { color: var(--red);     text-shadow: 0 0 30px rgba(255,84,112,0.45); }
+  .note.good  { color: var(--neon);    text-shadow: 0 0 40px rgba(57,255,20,0.7); transform: scale(1.02); }
+
+  .octave {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    color: var(--text-dim);
+    font-weight: 500;
+    margin-top: 14px;
+  }
+
+  .meta-row {
+    position: relative; z-index: 1;
+    display: flex; justify-content: center; gap: 18px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .meta strong { color: var(--text); font-weight: 500; margin-left: 4px; }
+
+  .gauge-wrap {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: 18px 16px 10px;
+    margin-bottom: 12px;
+  }
+  .gauge { width: 100%; height: 150px; display: block; }
+
+  .cents-bar-wrap {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius-md);
+    padding: 18px 18px 16px;
+    margin-bottom: 18px;
+  }
+
+  .cents-labels {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .cents-track {
+    position: relative; height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+    overflow: visible;
+  }
+  .cents-track::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg,
+      rgba(255,84,112,0.55) 0%,
+      rgba(255,185,104,0.45) 30%,
+      rgba(57,255,20,0.65) 50%,
+      rgba(255,185,104,0.45) 70%,
+      rgba(255,84,112,0.55) 100%);
+    opacity: 0.55;
+  }
+
+  .cents-zero {
+    position: absolute;
+    left: 50%;
+    top: -6px; bottom: -6px;
+    width: 2px;
+    background: rgba(57,255,20,0.7);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(57,255,20,0.6);
+    transform: translateX(-50%);
+  }
+
+  .cents-marker {
+    position: absolute;
+    top: 50%;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transform: translate(-50%, -50%);
+    transition: left 120ms cubic-bezier(.2,.7,.2,1), background-color 200ms, box-shadow 200ms;
+    border: 2px solid rgba(255,255,255,0.9);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  }
+
+  .cents-value {
+    text-align: center;
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .cents-value strong { color: var(--text); font-weight: 600; margin-left: 4px; }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .btn {
+    flex: 1 1 auto;
+    min-width: 140px;
+    padding: 14px 16px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 13.5px;
+    letter-spacing: 0.04em;
+    border-radius: 14px;
+    border: 1px solid var(--stroke-strong);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    transition: transform 140ms ease, background 200ms, border-color 200ms, color 200ms, box-shadow 200ms;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.22); }
+  .btn:active { transform: translateY(1px); }
+
+  .btn.primary {
+    color: #06120a;
+    background: linear-gradient(180deg, #6affc8, #39ff14);
+    border-color: rgba(57,255,20,0.6);
+    box-shadow: 0 8px 24px rgba(57,255,20,0.28), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .btn.primary:hover { background: linear-gradient(180deg, #82ffd0, #4cff2f); }
+  .btn.danger {
+    color: #fff;
+    background: linear-gradient(180deg, #ff7088, #ff4359);
+    border-color: rgba(255,84,112,0.55);
+    box-shadow: 0 8px 24px rgba(255,84,112,0.28), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  .btn.toggle {
+    color: var(--cyan);
+    background: rgba(92,220,255,0.08);
+    border-color: rgba(92,220,255,0.30);
+  }
+  .btn.toggle.active {
+    color: #04161c;
+    background: linear-gradient(180deg, #9aeaff, #5cdcff);
+    border-color: rgba(92,220,255,0.6);
+    box-shadow: 0 8px 22px rgba(92,220,255,0.22), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+
+  .strings {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .string {
+    text-align: center;
+    padding: 12px 6px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text-dim);
+    transition: all 200ms ease;
+  }
+  .string small {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    letter-spacing: 0.06em;
+    font-weight: 400;
+  }
+  .string.active {
+    color: #06120a;
+    background: linear-gradient(180deg, #6affc8, #39ff14);
+    border-color: rgba(57,255,20,0.6);
+    box-shadow: 0 6px 18px rgba(57,255,20,0.28), inset 0 1px 0 rgba(255,255,255,0.4);
+    transform: translateY(-1px);
+  }
+  .string.active small { color: rgba(6,18,10,0.7); }
+
+  .status {
+    margin-top: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.10em;
+    color: var(--text-muted);
+    text-align: center;
+    text-transform: uppercase;
+    min-height: 14px;
+  }
+  .status.error { color: var(--red); }
+
+  footer {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--stroke);
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 420px) {
+    .app { padding: 18px; border-radius: 20px; }
+    .note { font-size: 76px; }
+    .octave { font-size: 18px; margin-top: 10px; }
+    .display { padding: 24px 16px 18px; }
+    .btn { min-width: 120px; font-size: 12.5px; padding: 12px 12px; }
+    .string { font-size: 13px; padding: 10px 4px; }
+  }
+
+  @media (max-width: 340px) {
+    .strings { grid-template-columns: repeat(3, 1fr); }
+    .note { font-size: 64px; }
+  }
+</style>
+</head>
+<body>
+
+<main class="app" role="application" aria-label="Afinador cromático">
+  <header>
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div class="title">Tuner <span>· chromatic</span></div>
+    </div>
+    <div class="badge" id="modeBadge">CHROMATIC</div>
+  </header>
+
+  <section class="display" aria-live="polite">
+    <div class="note-row">
+      <div class="note idle" id="noteEl">—</div>
+      <div class="octave" id="octaveEl">·</div>
+    </div>
+    <div class="meta-row">
+      <div class="meta">FREQ<strong id="freqEl">0.00</strong> Hz</div>
+      <div class="meta">TARGET<strong id="targetEl">—</strong></div>
+    </div>
+  </section>
+
+  <section class="gauge-wrap">
+    <svg class="gauge" id="gauge" viewBox="0 0 300 150" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <linearGradient id="arcGrad" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%"   stop-color="#ff5470"/>
+          <stop offset="35%"  stop-color="#ffb968"/>
+          <stop offset="50%"  stop-color="#39ff14"/>
+          <stop offset="65%"  stop-color="#ffb968"/>
+          <stop offset="100%" stop-color="#ff5470"/>
+        </linearGradient>
+        <filter id="needleGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.4" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <path d="M 25 135 A 125 125 0 0 1 275 135"
+            stroke="url(#arcGrad)" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.85"/>
+      <path d="M 35 135 A 115 115 0 0 1 265 135"
+            stroke="rgba(255,255,255,0.06)" stroke-width="1" fill="none"/>
+      <g id="ticks" stroke-linecap="round"></g>
+      <line x1="150" y1="22" x2="150" y2="36" stroke="#39ff14" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
+      <text x="22"  y="148" fill="#6b7591" font-family="JetBrains Mono, monospace" font-size="10" letter-spacing="1">-50</text>
+      <text x="142" y="14"  fill="#39ff14" font-family="JetBrains Mono, monospace" font-size="10" letter-spacing="1" font-weight="700">0</text>
+      <text x="252" y="148" fill="#6b7591" font-family="JetBrains Mono, monospace" font-size="10" letter-spacing="1">+50</text>
+
+      <g id="needle" transform="rotate(0 150 135)" filter="url(#needleGlow)">
+        <line x1="150" y1="135" x2="150" y2="42" stroke="#39ff14" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="150" cy="135" r="9" fill="#0b0d18" stroke="#39ff14" stroke-width="2"/>
+        <circle cx="150" cy="135" r="3" fill="#39ff14"/>
+      </g>
+    </svg>
+  </section>
+
+  <section class="cents-bar-wrap">
+    <div class="cents-labels">
+      <span>♭ −50</span><span>−25</span><span>0</span><span>+25</span><span>+50 ♯</span>
+    </div>
+    <div class="cents-track" id="centsTrack">
+      <div class="cents-zero"></div>
+      <div class="cents-marker" id="centsMarker" style="left:50%;"></div>
+    </div>
+    <div class="cents-value">CENTS<strong id="centsValue">—</strong></div>
+  </section>
+
+  <div class="controls">
+    <button class="btn primary" id="startBtn" type="button">Iniciar afinador</button>
+    <button class="btn toggle active" id="modeBtn" type="button">Cromático</button>
+  </div>
+
+  <div class="strings" id="stringsRow">
+    <div class="string" data-note="E2"><span>E</span><small>82.41</small></div>
+    <div class="string" data-note="A2"><span>A</span><small>110.00</small></div>
+    <div class="string" data-note="D3"><span>D</span><small>146.83</small></div>
+    <div class="string" data-note="G3"><span>G</span><small>196.00</small></div>
+    <div class="string" data-note="B3"><span>B</span><small>246.94</small></div>
+    <div class="string" data-note="E4"><span>E</span><small>329.63</small></div>
+  </div>
+
+  <div class="status" id="statusEl">Presiona iniciar para permitir el micrófono</div>
+
+  <footer>Autocorrelación · Web Audio API · A4 = 440 Hz</footer>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const A4 = 440;
+
+  const STANDARD_MIDI = [40, 45, 50, 55, 59, 64];
+  const STANDARD_LABELS = ['E2','A2','D3','G3','B3','E4'];
+
+  const midiToFreq = m => A4 * Math.pow(2, (m - 69) / 12);
+  const freqToMidiFloat = f => 69 + 12 * Math.log2(f / A4);
+  const noteFromMidi = m => {
+    const name = NOTE_NAMES[((m % 12) + 12) % 12];
+    const octave = Math.floor(m / 12) - 1;
+    return { name, octave, label: name + octave };
+  };
+
+  function autoCorrelate(buf, sampleRate) {
+    const SIZE = buf.length;
+    let rms = 0;
+    for (let i = 0; i < SIZE; i++) { const v = buf[i]; rms += v * v; }
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.01) return -1;
+
+    let r1 = 0, r2 = SIZE - 1;
+    const thres = 0.2;
+    for (let i = 0; i < SIZE / 2; i++) { if (Math.abs(buf[i]) < thres) { r1 = i; break; } }
+    for (let i = 1; i < SIZE / 2; i++) { if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; } }
+    const trimmed = buf.slice(r1, r2);
+    const N = trimmed.length;
+    if (N < 32) return -1;
+
+    const c = new Array(N).fill(0);
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N - i; j++) c[i] += trimmed[j] * trimmed[j + i];
+    }
+
+    let d = 0;
+    while (d + 1 < N && c[d] > c[d + 1]) d++;
+
+    let maxval = -1, maxpos = -1;
+    for (let i = d; i < N; i++) { if (c[i] > maxval) { maxval = c[i]; maxpos = i; } }
+    let T0 = maxpos;
+    if (T0 <= 0) return -1;
+
+    const x1 = c[T0 - 1] || 0;
+    const x2 = c[T0];
+    const x3 = c[T0 + 1] || 0;
+    const a = (x1 + x3 - 2 * x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a) T0 = T0 - b / (2 * a);
+
+    const freq = sampleRate / T0;
+    if (freq < 30 || freq > 2000) return -1;
+    return freq;
+  }
+
+  const startBtn   = document.getElementById('startBtn');
+  const modeBtn    = document.getElementById('modeBtn');
+  const modeBadge  = document.getElementById('modeBadge');
+  const noteEl     = document.getElementById('noteEl');
+  const octaveEl   = document.getElementById('octaveEl');
+  const freqEl     = document.getElementById('freqEl');
+  const targetEl   = document.getElementById('targetEl');
+  const centsValue = document.getElementById('centsValue');
+  const centsMarker= document.getElementById('centsMarker');
+  const needle     = document.getElementById('needle');
+  const ticksGroup = document.getElementById('ticks');
+  const statusEl   = document.getElementById('statusEl');
+  const stringEls  = Array.from(document.querySelectorAll('.string'));
+
+  (function buildTicks() {
+    const cx = 150, cy = 135, rOuter = 130, rInner = 120;
+    [-50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50].forEach(c => {
+      const angle = (c / 50) * 60;
+      const rad = (angle - 90) * Math.PI / 180;
+      const isMajor = (c % 25 === 0);
+      const ro = isMajor ? rOuter : rOuter - 2;
+      const ri = isMajor ? rInner - 2 : rInner + 2;
+      const x1 = cx + ro * Math.cos(rad);
+      const y1 = cy + ro * Math.sin(rad);
+      const x2 = cx + ri * Math.cos(rad);
+      const y2 = cy + ri * Math.sin(rad);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+      line.setAttribute('stroke', c === 0 ? '#39ff14' : 'rgba(255,255,255,0.18)');
+      line.setAttribute('stroke-width', isMajor ? '2' : '1');
+      ticksGroup.appendChild(line);
+    });
+  })();
+
+  let audioCtx = null, analyser = null, micStream = null, sourceNode = null;
+  let rafId = null, buffer = null, running = false;
+  let mode = 'chromatic';
+  let smoothedFreq = 0, lastDetectionTs = 0;
+
+  function setStatus(msg, isError=false) {
+    statusEl.textContent = msg;
+    statusEl.classList.toggle('error', !!isError);
+  }
+  function setActiveString(label) {
+    stringEls.forEach(el => el.classList.toggle('active', el.dataset.note === label));
+  }
+  function clearDisplay() {
+    noteEl.textContent = '—';
+    noteEl.className = 'note idle';
+    octaveEl.textContent = '·';
+    freqEl.textContent = '0.00';
+    targetEl.textContent = '—';
+    centsValue.textContent = '—';
+    centsMarker.style.left = '50%';
+    centsMarker.style.background = 'var(--text-muted)';
+    centsMarker.style.boxShadow = '0 4px 14px rgba(0,0,0,0.45)';
+    needle.setAttribute('transform', 'rotate(0 150 135)');
+    setActiveString(null);
+  }
+  function colorForCents(absC) {
+    if (absC < 5)  return '#39ff14';
+    if (absC < 15) return '#9aff7a';
+    if (absC < 30) return '#ffb968';
+    return '#ff5470';
+  }
+
+  function update(freq) {
+    smoothedFreq = smoothedFreq ? smoothedFreq * 0.7 + freq * 0.3 : freq;
+    const f = smoothedFreq;
+
+    const midiFloat = freqToMidiFloat(f);
+    let nearestMidi;
+
+    if (mode === 'standard') {
+      let best = STANDARD_MIDI[0], bestDist = Infinity;
+      for (const m of STANDARD_MIDI) {
+        const d = Math.abs(m - midiFloat);
+        if (d < bestDist) { bestDist = d; best = m; }
+      }
+      nearestMidi = best;
+    } else {
+      nearestMidi = Math.round(midiFloat);
+    }
+
+    const targetFreq = midiToFreq(nearestMidi);
+    const cents = 1200 * Math.log2(f / targetFreq);
+    const clampedCents = Math.max(-50, Math.min(50, cents));
+    const note = noteFromMidi(nearestMidi);
+
+    noteEl.textContent = note.name;
+    octaveEl.textContent = note.octave;
+    freqEl.textContent = f.toFixed(2);
+    targetEl.textContent = `${note.label} · ${targetFreq.toFixed(2)} Hz`;
+    centsValue.textContent = (cents >= 0 ? '+' : '') + cents.toFixed(1);
+
+    const absC = Math.abs(cents);
+    const hex = colorForCents(absC);
+    noteEl.classList.remove('idle','good','bad','flat','sharp');
+    if (absC < 5) noteEl.classList.add('good');
+    else if (absC >= 30) noteEl.classList.add('bad');
+    else if (cents < 0) noteEl.classList.add('flat');
+    else noteEl.classList.add('sharp');
+
+    const pct = ((clampedCents + 50) / 100) * 100;
+    centsMarker.style.left = pct + '%';
+    centsMarker.style.background = hex;
+    centsMarker.style.boxShadow = `0 0 18px ${hex}, 0 4px 14px rgba(0,0,0,0.45)`;
+
+    const angle = (clampedCents / 50) * 60;
+    needle.setAttribute('transform', `rotate(${angle.toFixed(2)} 150 135)`);
+
+    const idx = STANDARD_MIDI.indexOf(nearestMidi);
+    setActiveString(idx >= 0 ? STANDARD_LABELS[idx] : null);
+  }
+
+  function loop() {
+    if (!running) return;
+    analyser.getFloatTimeDomainData(buffer);
+    const freq = autoCorrelate(buffer, audioCtx.sampleRate);
+    const now = performance.now();
+    if (freq > 0) { lastDetectionTs = now; update(freq); }
+    else if (now - lastDetectionTs > 600) {
+      smoothedFreq = 0;
+      clearDisplay();
+      setStatus('Escuchando… toca una cuerda');
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  async function start() {
+    try {
+      setStatus('Solicitando micrófono…');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 },
+        video: false
+      });
+      micStream = stream;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      sourceNode = audioCtx.createMediaStreamSource(stream);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0;
+      buffer = new Float32Array(analyser.fftSize);
+      sourceNode.connect(analyser);
+
+      running = true;
+      lastDetectionTs = performance.now();
+      startBtn.textContent = 'Detener';
+      startBtn.classList.remove('primary');
+      startBtn.classList.add('danger');
+      setStatus('Escuchando… toca una cuerda');
+      loop();
+    } catch (err) {
+      console.error(err);
+      let msg = 'Error: no se pudo acceder al micrófono';
+      if (err && err.name === 'NotAllowedError') msg = 'Error: permiso denegado';
+      else if (err && err.name === 'NotFoundError') msg = 'Error: no hay micrófono';
+      else if (err && err.name === 'NotSupportedError') msg = 'Error: navegador no compatible';
+      setStatus(msg, true);
+      stop();
+    }
+  }
+
+  function stop() {
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    if (sourceNode) { try { sourceNode.disconnect(); } catch(e){} sourceNode = null; }
+    if (analyser)   { try { analyser.disconnect();   } catch(e){} analyser   = null; }
+    if (micStream)  { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    if (audioCtx && audioCtx.state !== 'closed') audioCtx.close().catch(()=>{});
+    audioCtx = null;
+    smoothedFreq = 0;
+    clearDisplay();
+    startBtn.textContent = 'Iniciar afinador';
+    startBtn.classList.add('primary');
+    startBtn.classList.remove('danger');
+    setStatus('Presiona iniciar para permitir el micrófono');
+  }
+
+  startBtn.addEventListener('click', () => { if (running) stop(); else start(); });
+
+  modeBtn.addEventListener('click', () => {
+    if (mode === 'chromatic') {
+      mode = 'standard';
+      modeBtn.textContent = 'Estándar';
+      modeBadge.textContent = 'STANDARD';
+      modeBadge.style.color = 'var(--magenta)';
+      modeBadge.style.background = 'rgba(255,79,216,0.10)';
+      modeBadge.style.borderColor = 'rgba(255,79,216,0.30)';
+    } else {
+      mode = 'chromatic';
+      modeBtn.textContent = 'Cromático';
+      modeBadge.textContent = 'CHROMATIC';
+      modeBadge.style.color = 'var(--cyan)';
+      modeBadge.style.background = 'rgba(92,220,255,0.10)';
+      modeBadge.style.borderColor = 'rgba(92,220,255,0.25)';
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && running) {
+      running = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+    } else if (!document.hidden && audioCtx && analyser && !running) {
+      running = true;
+      lastDetectionTs = performance.now();
+      loop();
+    }
+  });
+
+  clearDisplay();
+})();
+</script>
+</body>
+</html>
